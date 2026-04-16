@@ -5,7 +5,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 TEMPERATURE = 0.3
 MAX_TOKENS = 1500
 
-# API key — loaded from environment / .env file
+# API key — loaded from environment 
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # RAG settings
