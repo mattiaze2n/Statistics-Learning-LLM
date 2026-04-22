@@ -6,6 +6,13 @@ import streamlit as st
 from dotenv import load_dotenv
 import json 
 import os 
+import tempfile, os
+import re 
+import matplotlib as plt 
+import pandas as pd 
+import seaborn as sns 
+import scipy
+import numpy as np
 
 
 load_dotenv()
@@ -13,6 +20,8 @@ load_dotenv()
 from backend.llm_client import ask_stream
 from backend.RAG import ingest, retrieve
 from backend.eval_tab import render_eval_tab
+
+
 
 INGESTED_FILES_RECORD = "ingested_files.json"
 
@@ -22,6 +31,12 @@ st.set_page_config(
     page_icon="📊",
     layout="wide",
 )
+
+st.markdown("""
+<style>
+[data-testid="stSidebar"] { min-width: 260px; max-width: 260px; }
+</style>
+""", unsafe_allow_html=True)
 
 
 PREFS_FILE  = "user_prefs.json"
@@ -34,6 +49,35 @@ DEFAULT_PREFERENCES = {
 
 def estimate_tokens(text:str) -> int:
     return len(text) // 4
+
+def try_render_chart(answer: str):
+    """Extract and execute any matplotlib code block in the answer."""
+    match = re.search(r"```python(.*?)```", answer, re.DOTALL)
+    if not match:
+        return
+    
+    code = match.group(1).strip()
+    code = code.replace("plt.show()", "")
+
+    if "plt" not in code and "plotly" not in code:
+        return
+    
+    try:
+        import matplotlib.pyplot as plt_exec
+        import numpy as np
+        import seaborn as sns
+
+        exec_globals = {
+            "plt": plt_exec,
+            "np": np,
+            "sns": sns,
+        }
+        exec(code, exec_globals)
+        fig = plt_exec.gcf()
+        st.pyplot(fig)
+        plt_exec.close()
+    except Exception as e:
+        st.warning(f"Could not render chart: {e}")
 
 def load_preferences() -> dict:
     """
@@ -115,6 +159,12 @@ def init_session_state():
 # =============================================================================
 
 def render_sidebar():
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] { min-width: 260px; max-width: 260px; }
+    </style>
+    """, unsafe_allow_html=True)
+
     with st.sidebar:
         st.title("⚙️  Your Profile")
 
@@ -177,6 +227,18 @@ def render_sidebar():
 
         st.divider()
 
+        if st.session_state.conversation_history:
+            history_text = "\n\n".join(
+                f"{m['role'].upper()}: {m['content']}"
+                for m in st.session_state.conversation_history
+            )
+            st.download_button(
+                "📥 Download conversation",
+                data=history_text,
+                file_name="conversation.txt",
+                use_container_width=True,
+            )
+
         if st.button("🗑️  Clear conversation", use_container_width=True):
             st.session_state.conversation_history = []
             st.session_state.total_input_tokens  = 0
@@ -186,7 +248,6 @@ def render_sidebar():
 
 def _handle_file_upload(uploaded_file):
     """Save uploaded file to a temp path, ingest it, track the name."""
-    import tempfile, os
 
     if uploaded_file.name in st.session_state.ingested_files:
         st.sidebar.info(f"`{uploaded_file.name}` already ingested.")
@@ -201,7 +262,7 @@ def _handle_file_upload(uploaded_file):
             n_chunks = ingest(tmp_path)
             st.session_state.ingested_files.append(uploaded_file.name)
             add_ingested_file(uploaded_file.name)
-            st.sidebar.success(f"Done — {n_chunks} chunks stored.")
+            st.toast(f"Ingested {n_chunks} chunks from {uploaded_file.name}", icon="✅")
         except Exception as e:
             st.sidebar.error(f"Ingestion failed: {e}")
         finally:
@@ -214,11 +275,17 @@ def _handle_file_upload(uploaded_file):
 
 def render_chat():
     st.title("📊 DataTutor")
-    st.caption(
-        f"Level: **{st.session_state.user_level}** · "
-        f"Goal: *{st.session_state.user_goal}* · "
-        f"Background: *{st.session_state.user_background}*"
-    )
+    if not st.session_state.conversation_history:
+        st.markdown("### Welcome to DataTutor")
+        st.caption("Ask any Data Science question below")
+
+    level_colors = {"Beginner": "green", "Intermediate": "blue", "Advanced": "red"}
+    color = level_colors.get(st.session_state.user_level, "blue")
+    st.markdown(
+        f":{color}[**{st.session_state.user_level}**] · "
+        f"{st.session_state.user_goal} · "
+        f"{st.session_state.user_background}"
+)
 
     # ── Render history ────────────────────────────────────────────────────────
     for message in st.session_state.conversation_history:
@@ -238,7 +305,7 @@ def _handle_user_message(user_input: str):
       1. Show user bubble.
       2. Retrieve RAG chunks (optional).
       3. Call LLM backend.
-      4. Show response — plain text today, streaming tomorrow (TODO-2).
+      4. Show response
       5. Update session state.
     """
     st.session_state.is_thinking = True
@@ -253,6 +320,8 @@ def _handle_user_message(user_input: str):
         with st.spinner("Searching your documents…"):
             try:
                 rag_chunks = retrieve(user_input)
+                st.write(f"DEBUG: retrieved{len(rag_chunks)} chunks")
+                st.write(rag_chunks)
             except Exception as e:
                 st.warning(f"RAG retrieval failed — answering without documents. ({e})")
 
@@ -265,7 +334,7 @@ def _handle_user_message(user_input: str):
                         st.divider()
 
     # 3 & 4. LLM call + display
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar="🎓"):
         answer = st.write_stream(
             ask_stream(           
                         user_message=user_input,
@@ -276,6 +345,7 @@ def _handle_user_message(user_input: str):
                         rag_chunks=rag_chunks or None,
             )
         )
+        try_render_chart(answer)
 
     # 5. Update history
     st.session_state.conversation_history = st.session_state.conversation_history + [

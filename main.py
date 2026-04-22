@@ -2,13 +2,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-from backend.llm_client import ask
+from backend.llm_client import ask_stream
 from backend.RAG import retrieve 
 
 user_message = 'Explain standard deviation'
 chunks = retrieve(user_message)
 
-response = ask(
+response = ask_stream(
     user_message= user_message,
     user_level="Beginner",
     user_goal="pass a university statistics exam",

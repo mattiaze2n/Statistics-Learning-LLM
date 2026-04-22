@@ -3,7 +3,7 @@ import os
 # Model settings
 GEMINI_MODEL = "gemini-2.5-flash"
 TEMPERATURE = 0.3
-MAX_TOKENS = 1500
+MAX_TOKENS = 3000
 
 # API key — loaded from environment 
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")

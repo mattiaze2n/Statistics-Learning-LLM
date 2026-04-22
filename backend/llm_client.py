@@ -1,3 +1,4 @@
+import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
@@ -12,27 +13,6 @@ llm = ChatGoogleGenerativeAI(
     max_output_tokens=MAX_TOKENS,
     streaming = True
 )
-
-# Prompt template — system prompt + optional user level + full chat history + user message
-prompt_template = ChatPromptTemplate.from_messages([
-    ("system", "{system_prompt}"),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{user_message}"),
-])
-
-chain = prompt_template | llm | StrOutputParser()
-
-
-def _convert_history(conversation_history: list[dict]) -> list:
-    """Convert a list of {'role': ..., 'content': ...} dicts to LangChain message objects."""
-    lc_messages = []
-    for msg in conversation_history:
-        if msg["role"] == "user":
-            lc_messages.append(HumanMessage(content=msg["content"]))
-        elif msg["role"] in ("assistant", "model"):
-            lc_messages.append(AIMessage(content=msg["content"]))
-    return lc_messages
-
 
 def ask(
     user_message: str,    
@@ -96,6 +76,26 @@ def ask(
     except Exception as e:
         print(f"LLM API error: {e}")
         return {"error": str(e)}
+
+prompt_template = ChatPromptTemplate.from_messages([
+    ("system", "{system_prompt}"),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{user_message}"),
+])
+
+chain = prompt_template | llm | StrOutputParser()
+
+
+def _convert_history(conversation_history: list[dict]) -> list:
+    """Convert a list of {'role': ..., 'content': ...} dicts to LangChain message objects."""
+    lc_messages = []
+    for msg in conversation_history:
+        if msg["role"] == "user":
+            lc_messages.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] in ("assistant", "model"):
+            lc_messages.append(AIMessage(content=msg["content"]))
+    return lc_messages
+
     
 def ask_stream(
         user_message: str,
@@ -139,6 +139,7 @@ def ask_stream(
 
     for chunk in llm.stream(messages):
         if chunk.content:
+            time.sleep(0.1)
             yield chunk.content
 
     

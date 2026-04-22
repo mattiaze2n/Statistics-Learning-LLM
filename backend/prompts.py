@@ -181,5 +181,13 @@ def build_rag_context(chunks: list[str]) -> str:
     """
     if not chunks:
         return ""
-    joined = "\n\n---\n\n".join(chunks)
-    return f"Use the following context to help answer the question:\n\n{joined}\n\n"
+    
+    numbered = ""
+    for i, chunk in enumerate(chunks):
+        numbered += f"[Source {i+1}]: {chunk}\n\n---\n\n"
+
+    return (
+        f"Use the following context to answer the question. "
+        f"When you use information from a source, explicitly cite it as [Source 1], [Source 2], etc.\n\n"
+        f"{numbered}"
+    )
