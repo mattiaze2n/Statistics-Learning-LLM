@@ -19,9 +19,6 @@ _CHROMA_DIR = _CHROMA_DIR = os.path.join(
 
 _embeddings = GoogleGenerativeAIEmbeddings(model = "gemini-embedding-001")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PRIVATE HELPER
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _load_document(file_path: str):
     """
@@ -45,9 +42,6 @@ def _load_document(file_path: str):
     return loader.load()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# INDEXING — run once per document (or when a document changes)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def ingest(file_path: str) -> int:
     """
@@ -89,12 +83,7 @@ def ingest(file_path: str) -> int:
     print(f"Ingested {len(chunks)} chunks from '{file_path}' into ChromaDB.")
     return len(chunks)
     
-    
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# QUERYING — called on every user message before ask()
-# ─────────────────────────────────────────────────────────────────────────────
 
 def retrieve(query: str, top_k: int = TOP_K_RESULTS) -> list[str]:
     """

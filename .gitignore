@@ -17,3 +17,7 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+#Data
+user_prefs.json
+ingested_files.json.env
