@@ -127,6 +127,11 @@ Goal: {user_goal}
 Background: {user_background}
 </user_profile>
 
+## CRITICAL INSTRUCTION
+All examples and analogies in your response MUST relate to {user_background}.
+This is mandatory — never use generic examples when a {user_background}-specific
+example is available.
+
 <user_question>
 {user_question}
 </user_question>
@@ -138,8 +143,6 @@ and goal. Then compose your response using this structure:
 
 {format_directive}
 
-Ensure your examples and analogies are relevant to the user's background
-where possible.
 </instructions>"""
 
 

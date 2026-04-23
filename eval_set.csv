@@ -1,2 +1,4 @@
-question,expected_topic,user_level
-What is standard deviation,standard deviation,Beginner
+question,expected_topic,user_level,user_goal, user_background
+"What is the mean?","central tendency — simple definition with example",Beginner,pass exam,Economics
+"What is standard deviation?","spread, formula, intuition",Intermediate,data analysis for paper,Biology
+"When should I use L1 vs L2 regularisation?","sparsity, ridge vs lasso tradeoffs",Advanced,PhD lesson,Statistics
